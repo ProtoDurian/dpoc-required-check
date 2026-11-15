@@ -1,0 +1,12 @@
+name: cd
+on:
+  workflow_run:
+    workflows: [ios]
+    types: [completed]
+    branches: [main]
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "deploy ${{ github.event.workflow_run.head_sha }} after ios run ${{ github.event.workflow_run.id }}"

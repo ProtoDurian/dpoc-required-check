@@ -1,0 +1,42 @@
+name: ios-manual
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: pull request number
+        required: true
+      mode:
+        description: status or check
+        default: status
+permissions:
+  contents: read
+  statuses: write
+  checks: write
+  pull-requests: read
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ inputs.pr }}
+    steps:
+      - id: head
+        run: echo "sha=$(gh api repos/${{ github.repository }}/pulls/$PR --jq .head.sha)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.head.outputs.sha }}
+      - id: test
+        run: test ! -f FAIL
+        continue-on-error: true
+      - name: report as commit status "ios"
+        if: inputs.mode == 'status'
+        run: |
+          state=${{ steps.test.outcome == 'success' && 'success' || 'failure' }}
+          gh api -X POST repos/${{ github.repository }}/statuses/${{ steps.head.outputs.sha }} \
+            -f state=$state -f context=ios -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      - name: report as check run "ios"
+        if: inputs.mode == 'check'
+        run: |
+          c=${{ steps.test.outcome == 'success' && 'success' || 'failure' }}
+          gh api -X POST repos/${{ github.repository }}/check-runs \
+            -f name=ios -f head_sha=${{ steps.head.outputs.sha }} -f status=completed -f conclusion=$c
