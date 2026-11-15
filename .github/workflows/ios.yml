@@ -10,7 +10,5 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.label.name == 'run-ios'
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          echo "event=${{ github.event_name }} sha=${{ github.sha }} ref=${{ github.ref }}"
-          echo "pr_head=${{ github.event.pull_request.head.sha }}"
-          test ! -f FAIL || { echo "FAIL file present"; exit 1; }
+      - uses: actions/checkout@v4
+      - run: test ! -f FAIL || { echo "FAIL file present"; exit 1; }
