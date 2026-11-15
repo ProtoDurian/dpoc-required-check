@@ -7,10 +7,17 @@ on:
     types: [labeled]
 jobs:
   ios:
+    # Only the run-ios label makes a check called "ios". Any other label makes
+    # a skipped check with a different name, so it cannot satisfy the rule.
+    name: ${{ (github.event_name != 'pull_request' || github.event.label.name == 'run-ios') && 'ios' || 'ios-not-requested' }}
     if: github.event_name != 'pull_request' || github.event.label.name == 'run-ios'
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          echo "event=${{ github.event_name }} sha=${{ github.sha }} ref=${{ github.ref }}"
-          echo "pr_head=${{ github.event.pull_request.head.sha }}"
-          test ! -f FAIL || { echo "FAIL file present"; exit 1; }
+      - uses: actions/checkout@v4
+      - run: test ! -f FAIL || { echo "FAIL file present"; exit 1; }
+  deploy-same-workflow:
+    needs: [ios]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "deploy ${{ github.sha }} (needs ios)"
